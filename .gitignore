@@ -1,3 +1,4 @@
+*.log
 # Prerequisites
 *.d
 
@@ -10,12 +11,6 @@
 # Precompiled Headers
 *.gch
 *.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
 
 # Compiled Dynamic libraries
 *.so
@@ -30,12 +25,31 @@
 *.lai
 *.la
 *.a
-*.lib
 
 # Executables
 *.exe
 *.out
 *.app
+*.db
+*.opendb
+*.ipch
+*.db-shm
+*.db-wal
+*.pdb
+*.log
+*.idb
+*.tlog
+*.txt
+*.ilk
+*.iobj
+*.ipdb
+*.enc
+*.dll
 
-# debug information files
-*.dwo
+# Pathes
+.vs/
+Stable build/
+Build debug/
+Developer/
+
+Beta/
