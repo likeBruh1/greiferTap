@@ -213,7 +213,6 @@ __forceinline bool CreateMoveHandler( void *ecx, float ft, CUserCmd * _cmd, Encr
 		if( !( cmd->tick_count % 5 ) && !g_TickbaseController.m_bTeleportUncharge )
 			g_Vars.globals.m_flPenetrationDamage = Autowall::GetPenetrationDamage( pLocal, pWeapon );
 
-		g_AntiAim.m_bHasOverriden = false;
 		g_FakeLag.HandleFakeLag( bSendPacket, cmd );
 
 		if( g_Ragebot.m_bSendNextCommand ) {
@@ -314,9 +313,6 @@ __forceinline bool CreateMoveHandler( void *ecx, float ft, CUserCmd * _cmd, Encr
 
 		g_TickbaseController.RunExploits( bSendPacket, cmd );
 
-		// fix animations after all movement related functions have been called
-		g_ServerAnimations.HandleAnimations( bSendPacket.Xor( ), cmd.Xor( ) );
-
 		// s/o estk
 		if( g_TickbaseController.m_bShifting && !g_TickbaseController.m_bTeleportUncharge ) {
 			cmd->buttons &= ~0x801u;
@@ -362,6 +358,12 @@ __forceinline bool CreateMoveHandler( void *ecx, float ft, CUserCmd * _cmd, Encr
 
 		g_Vars.globals.m_iWeaponIndex = pWeapon->m_iItemDefinitionIndex( );
 		g_Vars.globals.m_flLastDuckAmount = pLocal->m_flDuckAmount( );
+
+		/* move this here LOL nice one naphack fucking niggers. */
+		g_Movement.PostPrediction(cmd.Xor());
+
+		// fix animations after all movement related functions have been called
+		g_ServerAnimations.HandleAnimations(bSendPacket.Xor(), cmd.Xor());
 	}
 	g_Prediction.end( pLocal );
 
@@ -397,8 +399,6 @@ __forceinline bool CreateMoveHandler( void *ecx, float ft, CUserCmd * _cmd, Encr
 	//if( g_TickbaseController.m_bDoZeroMove ) {
 	//	cmd->sidemove = cmd->forwardmove = 0.f;
 	//}
-
-	g_Movement.PostPrediction( cmd.Xor( ) );
 
 	// we don't want this to be sent.
 	if( g_TickbaseController.m_bShifting /*|| g_TickbaseController.m_bTeleportUncharge */ || ( g_TickbaseController.m_bDelayDont && g_TickbaseController.m_bShiftMove ) ) {

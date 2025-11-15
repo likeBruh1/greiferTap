@@ -2228,12 +2228,6 @@ void Visuals::DrawWatermark( ) {
 	bool bPurple = false;
 	const float change = std::abs( Math::AngleNormalize( g_ServerAnimations.m_uServerAnimations.m_flLowerBodyYawTarget - g_ServerAnimations.m_uServerAnimations.m_flEyeYaw ) );
 	if( g_Vars.rage.anti_aim_fake_body && g_Vars.esp.indicator_antiaim_lby ) {
-		if( ( g_AntiAim.m_bHidingLBYFlick && pLocal->m_fFlags( ) & FL_ONGROUND && g_Prediction.get_unpredicted_vars( )->flags & FL_ONGROUND ) )
-			bPurple = true;
-
-		if( g_AntiAim.m_bLandDesynced && change > 35.f )
-			bPurple = true;
-
 		Indicator_t ind{ };
 		ind.color = bPurple ? Color( 100, 100, 255 ) : ( ( change > 35.f ) ? Color( 160, 255, 0 ) : Color( 255, 0, 0 ) );
 		ind.text = XorStr( "LBY" );

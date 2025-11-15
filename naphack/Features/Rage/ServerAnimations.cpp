@@ -214,14 +214,35 @@ void ServerAnimations::HandleServerAnimation( ) {
 	// prevent C_BaseEntity::CalcAbsoluteVelocity being called
 	pLocal->m_iEFlags( ) &= ~EFL_DIRTY_ABSVELOCITY;
 
+
+	/* Breaker: set LBY cuz server one is delayed!!! */
+	pLocal->m_flLowerBodyYawTarget() = g_ServerAnimations.m_uServerAnimations.m_flLowerBodyYawTarget;
+
 	// snap to footyaw, instead of approaching
 	pState->m_flMoveWeight = 0.f;
 
 	const bool bBackupClientSideAnimation = pLocal->m_bClientSideAnimation( );
 
+	/* Breaker: lby uses old on ground!!! */
+	bool lbyOnGroundCheck = pState->m_bOnGround;
+
 	pLocal->m_bClientSideAnimation( ) = true;
 	pLocal->UpdateClientSideAnimation( );
 	pLocal->m_bClientSideAnimation( ) = bBackupClientSideAnimation;
+
+	if (lbyOnGroundCheck) {
+		/* we are moving Boss.  */
+		if (pState->m_flVelocityLengthXY > 0.1f) {
+			g_ServerAnimations.m_uServerAnimations.m_flLowerBodyYawTarget = pState->m_flEyeYaw;
+			g_ServerAnimations.m_uServerAnimations.m_flLowerBodyRealignTimer = g_pGlobalVars->curtime + 0.22f;
+		}
+
+		/* we updated body yaw cuh. */
+		else if (g_pGlobalVars->curtime > g_ServerAnimations.m_uServerAnimations.m_flLowerBodyRealignTimer && fabs(Math::AngleNormalize(pState->m_flEyeYaw - pState->m_flFootYaw)) > 35.f) {
+			g_ServerAnimations.m_uServerAnimations.m_flLowerBodyYawTarget = pState->m_flEyeYaw;
+			g_ServerAnimations.m_uServerAnimations.m_flLowerBodyRealignTimer = g_pGlobalVars->curtime + 1.1f;
+		}
+	}
 
 	// store here as people might fuck with them in lua
 	std::memcpy( m_uServerAnimations.m_pPoseParameters.data( ), pLocal->m_flPoseParameter( ), sizeof( float ) * 20 );
@@ -233,54 +254,7 @@ void ServerAnimations::HandleServerAnimation( ) {
 		pLocal->m_flPoseParameter( )[ AIM_BLEND_CROUCH_IDLE ] = ( flPitch + 90.f ) / 180.f;
 	}
 
-	// note - michal;
-	// might want to make some storage for constant anim variables
 	constexpr float CSGO_ANIM_LOWER_REALIGN_DELAY{ 1.1f };
-
-	static bool bWasMoving = false;
-
-	static int nBrokenTicks = 0;
-
-	// rebuild server CCSGOPlayerAnimState::SetUpVelocity
-	// predict m_flLowerBodyYawTarget
-	const float flServerTime = TICKS_TO_TIME( pLocal->m_nTickBase( ) );
-	static bool bPrevGround = pState->m_bOnGround;
-	if( !bPrevGround && pState->m_bOnGround ) {
-		m_uServerAnimations.m_flLowerBodyRealignTimer = flServerTime;
-		m_uRenderAnimations.m_flLowerBodyRealignTimer = g_pGlobalVars->realtime;
-	}
-	else if( pState->m_bOnGround ) {
-		if( pState->m_flVelocityLengthXY > 0.1f ) {
-			m_uServerAnimations.m_flLowerBodyRealignTimer = flServerTime + 0.22f;
-			m_uRenderAnimations.m_flLowerBodyRealignTimer = g_pGlobalVars->realtime + 0.22f;
-			m_uServerAnimations.m_bFirstFlick = bWasMoving = true;
-		}
-		else if( flServerTime >= m_uServerAnimations.m_flLowerBodyRealignTimer /*&& abs( Math::AngleDiff( pState->m_flFootYaw, pState->m_flEyeYaw ) ) > ( 35.0f )*/ ) {
-			m_uServerAnimations.m_flLowerBodyRealignTimer = flServerTime + 1.1f;
-			m_uRenderAnimations.m_flLowerBodyRealignTimer = g_pGlobalVars->realtime + 1.1f;
-		}
-	}
-	bPrevGround = pState->m_bOnGround;
-
-	if( g_AntiAim.m_bWaitForBreaker && g_ServerAnimations.m_uRenderAnimations.m_bDoingRealFlick ) {
-		if( abs( Math::AngleDiff( pState->m_flFootYaw, pState->m_flEyeYaw ) ) > ( 35.0f ) )
-			nBrokenTicks++;
-
-		if( nBrokenTicks > 3 )
-			g_AntiAim.m_bWaitForBreaker = false;
-	}
-
-	if( m_pCmd->buttons & IN_USE || ( pLocal->m_vecVelocity( ).Length2D( ) >= 0.1f && !g_Vars.globals.m_bFakeWalking ) ) {
-		g_AntiAim.m_bWaitForBreaker = true;
-		g_ServerAnimations.m_uRenderAnimations.m_bDoingRealFlick = false;
-	}
-
-	// lby isn't broken and hasn't been broken for 
-	// a good while now, notify our anti-aim of this
-	/*const float flLastValidDeltaTime = std::abs( m_uServerAnimations.m_flLastValidDelta - flServerTime );
-	if( flLastValidDeltaTime > ( CSGO_ANIM_LOWER_REALIGN_DELAY * 0.5f ) && flDelta < 35.f ) {
-		m_uServerAnimations.m_nFailedDeltaTicks++;
-	}*/
 
 	for( int i = 0; i < ANIMATION_LAYER_COUNT; i++ ) {
 		g_ServerAnimations.m_uVisualAnimations.m_pAnimOverlays[ i ] = pLocal->m_AnimOverlay( )[ i ];
@@ -295,12 +269,6 @@ void ServerAnimations::HandleServerAnimation( ) {
 	for( int i = 0; i < ANIMATION_LAYER_COUNT; i++ ) {
 		m_uServerAnimations.m_pAnimOverlays[ i ] = pLocal->m_AnimOverlay( )[ i ];
 	}
-
-#ifdef LUA_SCRIPTING
-	//if( pLocal ) {
-	//	Scripting::Script::DoCallback( hash_32_fnv1a_const( XorStr( "post_anim_update" ) ), Wrappers::Entity::CEntity( pLocal ) );
-	//}
-#endif
 
 	// use this matrix for rendering
 	matrix3x4_t pBackupMatrix[ MAXSTUDIOBONES ];

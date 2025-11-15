@@ -66,7 +66,6 @@ struct ResolverData_t {
 		m_flLastSafeBody = -1.f;
 		m_flNextBodyUpdate = -1.f;
 		m_flFreestandYaw = -1.f;
-		m_flEdgeYaw = -1.f;
 		m_bPredictingBody = false;
 		m_bAdjusting = false;
 		m_vecDeductedAngles.clear( );
@@ -100,7 +99,6 @@ struct ResolverData_t {
 	};
 
 	float m_flFreestandYaw = -1.f;
-	float m_flEdgeYaw = -1.f;
 	float m_flNextBodyUpdate = -1.f;
 	bool m_bPredictingBody = false;
 	bool m_bMissedFreestand = false;

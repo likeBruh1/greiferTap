@@ -683,7 +683,7 @@ float Resolver::GetFreestandYaw( LagRecord_t *pRecord ) {
 				continue;
 
 			// append 'penetrated distance'.
-			it->m_dist += ( 4.f * g_AntiAim.UpdateFreestandPriority( len, i, true ) );
+			it->m_dist +=  4.f;
 
 			// mark that we found anything.
 			valid = true;
@@ -996,30 +996,6 @@ void Resolver::OnPlayerStand( LagRecord_t *pRecord, LagRecord_t *pPrevious ) {
 	// low confidence to start with
 	data.m_eIdealConfidence = EConfidence::CONF_LOW;
 
-	// major difference between freestand angle and current confidence angle
-	// this means the freestand angle is probably +- 90
-	if( data.IsValidFloat( data.m_flFreestandYaw ) && fabsf( Math::AngleDiff( flIdealAngle, data.m_flFreestandYaw ) ) > 5.f ) {
-		bool bInvalidAngle = !data.IsValidFloat( data.m_flEdgeYaw );
-		// we previously missed this guy by shooting at his freestand angle
-		// let's only allow this stage if it 'verifies' the angle by comparing to the edge angle
-		if( data.m_bMissedFreestand && !bInvalidAngle ) {
-			// too far away bro, don't let it get used
-			if( fabsf( Math::AngleDiff( data.m_flEdgeYaw, data.m_flFreestandYaw ) ) > 10.f ) {
-				bInvalidAngle = true;
-			}
-		}
-
-		if( !bInvalidAngle ) {
-			flIdealAngle = data.m_flFreestandYaw;
-
-			// medium confidence, they don't have to be freestanding
-			data.m_eIdealConfidence = EConfidence::CONF_MED;
-
-			pRecord->m_iResolverType = 12;
-			pRecord->m_szResolver = XorStr( "freestand" );
-		}
-	}
-
 	float flSafeBodyDelta = data.m_flApproxDelta;
 	if( data.m_bAdjusting ) {
 		flSafeBodyDelta = std::clamp( flSafeBodyDelta, -180.f, 180.f );
@@ -1088,22 +1064,7 @@ void Resolver::OnPlayerStand( LagRecord_t *pRecord, LagRecord_t *pPrevious ) {
 		// yeah we missed him here before
 		// let's add some safety for this angle
 		else {
-			// we missed him once on here before
-			if( data.m_nMissedBody == 0 ) {
-				// first check if freestand yaw is valid, if so compare it to this angle, if they're close then let's allow resolver to use it
-				// then if the first freestand valid check fails, check for a valid edge angle and compare to that, if both fail we just don't use this at all
-				if( ( data.IsValidFloat( data.m_flFreestandYaw ) && fabsf( Math::AngleDiff( data.m_flLastMovingBody, data.m_flFreestandYaw ) ) < 10.f ) ||
-					( data.IsValidFloat( data.m_flEdgeYaw ) && fabsf( Math::AngleDiff( data.m_flLastMovingBody, data.m_flEdgeYaw ) ) < 10.f ) ) {
-					flIdealAngle = data.m_flLastMovingBody;
 
-					// high confidence, they haven't updated lby yet (but we missed once before)
-					data.m_eIdealConfidence = EConfidence::CONF_HIGH;
-
-					pRecord->m_iResolverType = 16;
-					pRecord->m_szResolver = XorStr( "same lby" );
-				}
-			}
-			else { /*if we miss him again after this point let's just not shoot at it ever again*/ }
 		}
 	}
 
@@ -1462,14 +1423,6 @@ void Resolver::OnPlayerStandTrial( LagRecord_t *pRecord, LagRecord_t *pPrevious 
 			return;
 		}
 
-		// lby and edge angle are close enough, use this
-		if( data.IsValidFloat( data.m_flEdgeYaw ) && fabsf( data.m_flEdgeYaw - pRecord->m_flLowerBodyYawTarget ) <= 36 ) {
-			SetResolverStage( pRecord, data, data.m_flEdgeYaw, EConfidence::CONF_HIGH, 11, XorStr( "edge" ) );
-
-			// exit out
-			return;
-		}
-
 		// not breaking lby, we can do lby here
 		if( data.m_eBodyState == EBodyState::BODY_DEFAULT ) {
 			SetResolverStage( pRecord, data, pRecord->m_flLowerBodyYawTarget, EConfidence::CONF_HIGH, 13, XorStr( "no fake" ) );
@@ -1751,16 +1704,6 @@ void Resolver::OnPlayerResolve( LagRecord_t *pRecord, LagRecord_t *pPrevious ) {
 	// that we could use to our advantage
 	auto &data = GetResolverData( pRecord->m_pEntity->EntIndex( ) );
 	data.m_flFreestandYaw = GetFreestandYaw( pRecord );
-
-	// reset this, so we can overwrite 
-	// it when edge doesn't fail
-	data.m_flEdgeYaw = -1.f;
-
-	// run our edge anti-aim on this player 
-	// to get an ideal edge angle for them
-	if( QAngle angEdge; g_AntiAim.DoEdgeAntiAim( pRecord->m_pEntity, angEdge ) ) {
-		data.m_flEdgeYaw = angEdge.y;
-	}
 
 	GetApproximateBodyDelta( pRecord, pPrevious );
 

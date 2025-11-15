@@ -93,14 +93,6 @@ bool FakeLag::ShouldFakeLag( Encrypted_t<CUserCmd> pCmd ) {
 			bReturnValue = false;
 	}
 
-	if( !g_Movement.PressingMovementKeys( pCmd.Xor( ) ) && pLocal->m_vecVelocity( ).Length2D( ) <= flVelocityEpsilon && pLocal->m_fFlags( ) & FL_ONGROUND ) {
-		if( ( ( TICKS_TO_TIME( pLocal->m_nTickBase( ) ) + ( g_pGlobalVars->interval_per_tick * 2 ) ) > g_ServerAnimations.m_uServerAnimations.m_flLowerBodyRealignTimer ) ) {
-			bReturnValue = false;
-			g_AntiAim.m_bLastPacket = false;
-			g_AntiAim.m_bHasOverriden = true;
-		}
-	}
-
 	if( BreakDuringBodyTimer( pCmd ) > 0 )
 		bReturnValue = true;
 

@@ -441,11 +441,6 @@ void Movement::PostPrediction( CUserCmd *cmd ) {
 	// lerp our latency.
 	g_FakePing.GetTargetLatency( );
 
-	// XDD !!! 
-	cmd->forwardmove = std::clamp<float>( cmd->forwardmove, -450.f, 450.f );
-	cmd->sidemove = std::clamp<float>( cmd->sidemove, -450.f, 450.f );
-	cmd->upmove = std::clamp<float>( cmd->upmove, -320.f, 320.f );
-
 	cmd->viewangles.Clamp( );
 
 	// fix movement after all movement code has ran
@@ -908,7 +903,6 @@ void Movement::StopToSpeed( float speed, CUserCmd *cmd ) {
 
 void Movement::FakeDuck( bool *bSendPacket, CUserCmd *cmd, bool bForce ) {
 	g_Vars.globals.m_bFakeWalking = false;
-	g_AntiAim.m_bAllowFakeWalkFlick = false;
 
 	const auto pLocal = C_CSPlayer::GetLocalPlayer( );
 	if( !pLocal )
